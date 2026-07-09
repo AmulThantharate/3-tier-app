@@ -44,6 +44,7 @@ jobs:
           mkdir -p ~/.ssh
           mv ansible-key.pem ~/.ssh/ansible-key.pem
           chmod 600 ~/.ssh/ansible-key.pem
+          ssh-keyscan -H "${{ env.PUBLIC_IP }}" >> ~/.ssh/known_hosts
       - name: Install Ansible
         run: |
           sudo apt-get update
@@ -67,4 +68,12 @@ jobs:
       - name: Run Ansible Playbook
         working-directory: ansible
         run: |
-          ansible-playbook -i inventory test.yaml
+          ansible-playbook -i inventory test.yaml \
+          -e "ansible_user=ubuntu" \
+          -e "ansible_ssh_private_key_file=~/.ssh/id_rsa"
+        env:
+          AWS_DEFAULT_REGION: ap-southeast-1
+          AWS_REGION: ap-southeast-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          PUBLIC_IP: ${{ env.PUBLIC_IP }}
