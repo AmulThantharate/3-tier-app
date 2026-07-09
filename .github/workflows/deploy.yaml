@@ -52,9 +52,10 @@ jobs:
       - name: Create Ansible Inventory
         working-directory: ansible
         run: |
+          key_path="$HOME/.ssh/ansible-key.pem"
           cat > inventory <<EOF
           [webservers]
-          $PUBLIC_IP ansible_user=ubuntu ansible_ssh_private_key=~/.ssh/ansible-key.pem
+          $PUBLIC_IP ansible_user=ubuntu ansible_ssh_private_key_file=$key_path
           EOF
       - name: Wait for EC2 SSH
         run: |
@@ -68,9 +69,7 @@ jobs:
       - name: Run Ansible Playbook
         working-directory: ansible
         run: |
-          ansible-playbook -i inventory test.yaml \
-          -e "ansible_user=ubuntu" \
-          -e "ansible_ssh_private_key_file=~/.ssh/id_rsa"
+          ansible-playbook -i inventory test.yaml
         env:
           AWS_DEFAULT_REGION: ap-southeast-1
           AWS_REGION: ap-southeast-1
