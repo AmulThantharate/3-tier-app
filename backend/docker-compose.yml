@@ -1,0 +1,36 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: notes-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: notes
+      MYSQL_USER: notes
+      MYSQL_PASSWORD: notes
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  web:
+    build: .
+    container_name: notes-web
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SECRET_KEY: dev-secret
+      DATABASE_URL: mysql+pymysql://notes:notes@db:3306/notes
+    ports:
+      - "8000:8000"
+
+volumes:
+  mysql_data:

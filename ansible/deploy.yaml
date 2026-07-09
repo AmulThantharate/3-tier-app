@@ -1,0 +1,138 @@
+---
+  - name: Deploying 3 Tier Flask Application
+    hosts: all
+    become: true
+
+    vars:
+      app_user: flaskapp
+      app_group: flaskapp
+      app_dir: /opt/flask-notes
+      app_venv_dir: "{{ app_dir }}/venv"
+      app_env_file: /etc/flask-notes.env
+      flask_secret_key: change-me
+      mysql_app_db: notes
+      mysql_app_user: notes
+      mysql_app_password: notes
+      mysql_app_host: 127.0.0.1
+
+    tasks:
+      - name: Update Cache
+        ansible.builtin.apt:
+          update_cache: true
+          update_cache_retries: true
+      - name: Installing Required Packages
+        ansible.builtin.apt:
+          name:
+            - nginx
+            - mysql-server
+            - python3
+            - python3-pip
+            - python3-venv
+            - python3-dev
+            - build-essential
+            - pkg-config
+            - default-libmysqlclient-dev
+            - python3-pymysql
+          state: present
+      - name: Starting required Service
+        ansible.builtin.service:
+          name: "{{ item }}"
+          state: started
+        loop:
+          - mysql
+          - nginx
+      - name: Create Group
+        ansible.builtin.group:
+          name: "{{ app_group }}"
+          system: true
+      - name: Create User
+        ansible.builtin.user:
+          name: "{{ app_user }}"
+          group: "{{ app_group }}"
+          create_home: no
+          system: true
+          shell: /usr/sbin/nologin
+      - name: Create Home Directory
+        ansible.builtin.file:
+          name: "{{ app_dir }}"
+          state: directory
+          mode: "0775"
+          owner: "{{ app_user }}"
+          group: "{{ app_group }}"
+      - name: Copy App Folder
+        ansible.builtin.copy:
+          src: "{{ playbook_dir }}/../backend/"
+          dest: "{{ app_dir }}"
+          owner: "{{ app_user }}"
+          group: "{{ app_group }}"
+          mode: preserve
+      - name: Create virtualvenv
+        ansible.builtin.command:
+          cmd: python3 -m venv {{ app_venv_dir }}
+          creates: "{{ app_venv_dir }}/bin/python"
+      - name: Install Python dependencies
+        ansible.builtin.pip:
+          requirements: "{{ app_dir }}/requirements.txt"
+          virtualenv: "{{ app_venv_dir }}"
+      - name: Create Application Database
+        ansible.builtin.template:
+          src: templates/init.sql.j2
+          dest: /tmp/init.sql
+          owner: root
+          group: root
+      - name: Apply Mysql Schema
+        ansible.builtin.shell: mysql -u root < /tmp/init.sql
+      - name: Create .env File for the project
+        ansible.builtin.template:
+          src: templates/flask.env.j2
+          dest: "{{ app_env_file }}"
+          owner: "{{ app_user }}"
+          group: "{{ app_group }}"
+          mode: "0775"
+      - name: Write systemd service
+        ansible.builtin.template:
+          src: templates/flask.service.j2
+          dest: /etc/systemd/system/flask-note.service
+          mode: "0644"
+          owner: root
+          group: root
+        notify: restart flask app
+      - name: Configure nginx
+        ansible.builtin.template:
+          src: templates/nginx.conf.j2
+          dest: /etc/nginx/sites-available/flask-note.conf
+          mode: "0644"
+          owner: root
+          group: root
+        notify: restart nginx
+      - name: Enable nginx site
+        ansible.builtin.file:
+          src: /etc/nginx/sites-available/flask-note.conf
+          dest: /etc/nginx/sites-enabled/flask-note.conf
+          state: link
+        notify: restart nginx
+      - name: Remove default site
+        ansible.builtin.file:
+          path: /etc/nginx/sites-enabled/default
+          state: absent
+        notify: restart nginx
+      - name: Ensure services are enabled and started
+        ansible.builtin.systemd:
+          name: "{{ item }}"
+          enabled: true
+          daemon_reload: true
+          state: started
+        loop:
+          - flask-note
+          - nginx
+
+    handlers:
+      - name: restart flask app
+        ansible.builtin.systemd:
+          name: flask-note
+          state: restarted
+          daemon_reload: true
+      - name: restart nginx
+        ansible.builtin.systemd:
+          name: nginx
+          state: restarted

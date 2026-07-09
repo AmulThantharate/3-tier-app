@@ -1,0 +1,17 @@
+[Unit]
+Description=Flask Notes App
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+User={{ app_user }}
+Group={{ app_user }}
+WorkingDirectory={{ app_dir }}
+EnvironmentFile={{ app_env_file }}
+ExecStart={{ app_venv_dir }}/bin/gunicorn --bind 127.0.0.1:8000 wsgi:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

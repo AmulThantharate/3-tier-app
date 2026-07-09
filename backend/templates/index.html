@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Notes Board</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Flask + MySQL three-tier app</p>
+        <h1>Notes Board</h1>
+        <p class="lede">A simple web app with Nginx, Flask, and MySQL.</p>
+      </section>
+
+      {% with messages = get_flashed_messages() %}
+        {% if messages %}
+          <div class="messages">
+            {% for message in messages %}
+              <div class="message">{{ message }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <section class="card">
+        <h2>Add a note</h2>
+        <form method="post" action="{{ url_for('create_note') }}">
+          <label>
+            <span>Title</span>
+            <input type="text" name="title" maxlength="120" required>
+          </label>
+
+          <label>
+            <span>Body</span>
+            <textarea name="body" rows="5" required></textarea>
+          </label>
+
+          <button type="submit">Save note</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Saved notes</h2>
+        {% if notes %}
+          <div class="notes">
+            {% for note in notes %}
+              <article class="note">
+                <div class="note-meta">
+                  <h3>{{ note.title }}</h3>
+                  <time>{{ note.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</time>
+                </div>
+                <p>{{ note.body }}</p>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="empty">No notes yet.</p>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>
+
