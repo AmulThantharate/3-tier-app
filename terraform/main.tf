@@ -34,9 +34,6 @@ resource "aws_instance" "three_tier_app" {
   vpc_security_group_ids       = [aws_security_group.ansible-access.id]
   key_name                    =  aws_key_pair.ansible-key.key_name
   associate_public_ip_address = true
-
-  user_data = file("${path.module}/../scripts/main.sh")
-
   tags = {
     Name = "three-tier-app"
   }
