@@ -5,22 +5,22 @@
 
   tasks:
     - name: Update apt packages
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
 
     - name: Install Nginx
-      apt:
+      ansible.builtin.apt:
         name: nginx
         state: present
 
     - name: Enable Nginx
-      service:
+      ansible.builtin.service:
         name: nginx
         state: started
-        enabled: yes
+        enabled: true
 
     - name: Create test page
-      copy:
+      ansible.builtin.copy:
         dest: /var/www/html/index.html
         content: |
           <html>
@@ -29,8 +29,9 @@
               <h2>Terraform + GitHub Actions + Ansible</h2>
             </body>
           </html>
+        mode: "0755"
 
     - name: Verify Nginx is running
-      service:
+      ansible.builtin.service:
         name: nginx
         state: started

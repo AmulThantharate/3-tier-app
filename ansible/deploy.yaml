@@ -1,6 +1,6 @@
 ---
   - name: Deploying 3 Tier Flask Application
-    hosts: all
+    hosts: webservers
     become: true
 
     vars:

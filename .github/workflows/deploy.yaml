@@ -25,3 +25,44 @@ jobs:
       - name: Terraform Init
         working-directory: terraform
         run: terraform init
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan
+      - name: Terraform apply
+        working-directory: terraform
+        run: terraform apply --auto-approve
+      - name: Get Terraform Outputs
+        working-directory: terraform
+        run: |
+          echo "PUBLIC_IP=$(terraform output -raw public_ip)" >> $GITHUB_ENV
+          terraform output -raw private_key > ../ansible-key.pem
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          mv ansible-key.pem ~/.ssh/ansible-key.pem
+          chmod 600 ~/.ssh/ansible-key.pem
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install ansible -y
+      - name: Create Ansible Inventory
+        run: |
+          cat > ansible/inventory <<EOF
+          [webservers]
+          $PUBLIC_IP ansible_user=ubuntu ansible_ssh_private_key=~/.ssh/ansible-key.pem
+          EOF
+      - name: Wait for EC2 SSH
+        run: |
+          echo "Waiting for EC2 to become reachable..."
+          until ssh -o StrictHostKeyChecking=no \
+            -i ~/.ssh/ansible-key.pem \
+            ubuntu@$PUBLIC_IP "echo Connected" >/dev/null 2>&1
+          do
+            sleep 10
+          done
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i inventory test.yaml
