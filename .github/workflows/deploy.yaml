@@ -69,7 +69,7 @@ jobs:
       - name: Run Ansible Playbook
         working-directory: ansible
         run: |
-          ansible-playbook -i inventory test.yaml
+          ansible-playbook -i inventory deploy.yaml
         env:
           AWS_DEFAULT_REGION: ap-southeast-1
           AWS_REGION: ap-southeast-1
